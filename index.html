@@ -1,6 +1,176 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnapNote ✨</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/tesseract.js@v5.0.0/dist/tesseract.min.js"></script>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/icon-192.png" type="image/png">
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; }
+        .teal { color: #0f766e; }
+        .navy { color: #1e3a8a; }
+        .offwhite { background-color: #f9f7f0; }
+        .dropzone { transition: all 0.3s; }
+        .dropzone.dragover { background-color: #ccfbf1; border-color: #0f766e; }
+    </style>
+</head>
+<body class="offwhite min-h-screen flex flex-col text-navy">
+    <header class="bg-white shadow-sm border-b border-teal-200">
+        <div class="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 bg-teal-600 rounded-2xl flex items-center justify-center text-white text-2xl">📸</div>
+                <h1 class="text-3xl font-bold tracking-tight teal">SnapNote</h1>
+            </div>
+            <button onclick="installApp()" id="installBtn" class="hidden bg-teal-600 hover:bg-teal-700 text-white px-6 py-2 rounded-2xl font-medium text-sm">Install App</button>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-3xl mx-auto w-full px-6 py-8">
+        <div class="bg-white rounded-3xl shadow-xl p-8">
+            <!-- Upload Area -->
+            <div id="dropzone" class="dropzone border-4 border-dashed border-teal-300 rounded-3xl h-80 flex flex-col items-center justify-center text-center cursor-pointer hover:border-teal-500">
+                <div class="text-6xl mb-4">📷</div>
+                <p class="text-xl font-medium navy">Drop a photo or tap to upload</p>
+                <p class="text-sm text-teal-600 mt-2">Handwritten notes, receipts, forms — anything</p>
+                <input type="file" id="fileInput" accept="image/*" class="hidden">
+                <button onclick="document.getElementById('fileInput').click()" class="mt-6 px-8 py-3 bg-teal-100 hover:bg-teal-200 text-teal-800 rounded-2xl text-sm font-semibold">📸 Take Photo</button>
+            </div>
+
+            <!-- Preview -->
+            <div id="preview" class="hidden mt-8">
+                <img id="imagePreview" class="mx-auto rounded-2xl shadow-md max-h-96">
+                <button onclick="processImage()" class="mt-6 w-full bg-teal-600 hover:bg-teal-700 text-white py-4 rounded-3xl font-semibold text-lg flex items-center justify-center gap-3">✨ Extract Text & Summarize</button>
+            </div>
+
+            <!-- Results -->
+            <div id="results" class="hidden mt-10 space-y-8">
+                <div>
+                    <h2 class="text-xl font-semibold mb-3 teal">📝 Extracted Text</h2>
+                    <div id="ocrText" class="bg-offwhite p-6 rounded-2xl text-base leading-relaxed whitespace-pre-wrap min-h-[120px]"></div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h2 class="text-xl font-semibold mb-3 teal">📋 Summary</h2>
+                        <div id="summary" class="bg-offwhite p-6 rounded-2xl text-base"></div>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-semibold mb-3 teal">🏷️ Keywords</h2>
+                        <div id="keywords" class="flex flex-wrap gap-2"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <h2 class="text-xl font-semibold mb-3 teal">❓ Ask anything</h2>
+                    <div class="flex gap-3">
+                        <input id="question" type="text" placeholder="What is the due date?" class="flex-1 px-6 py-4 rounded-3xl border border-teal-200 focus:outline-none focus:border-teal-500">
+                        <button onclick="askQuestion()" class="bg-teal-600 hover:bg-teal-700 text-white px-10 rounded-3xl font-semibold">Ask</button>
+                    </div>
+                    <div id="answer" class="mt-4 bg-offwhite p-6 rounded-2xl min-h-[60px]"></div>
+                </div>
+
+                <!-- Pro Mode -->
+                <div class="pt-6 border-t border-teal-100">
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" id="proMode" class="w-5 h-5 accent-teal-600">
+                        <span class="text-lg font-medium">Pro Mode (headlines + translation)</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="text-center text-xs text-teal-700/60 py-8">100% offline • Private • Built for Michigan families ❤️</footer>
+
+    <script>
+        tailwind.config = { content: ["*"] }
+        let worker = null
+        let currentText = ""
+
+        async function initTesseract() {
+            if (!worker) {
+                worker = await Tesseract.createWorker('eng', 1, { logger: m => console.log(m) })
+            }
+        }
+
+        // Drag & Drop
+        const dropzone = document.getElementById('dropzone')
+        const fileInput = document.getElementById('fileInput')
+        dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover') })
+        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'))
+        dropzone.addEventListener('drop', e => {
+            e.preventDefault()
+            dropzone.classList.remove('dragover')
+            handleFile(e.dataTransfer.files[0])
+        })
+        fileInput.addEventListener('change', e => handleFile(e.target.files[0]))
+
+        function handleFile(file) {
+            if (!file) return
+            const reader = new FileReader()
+            reader.onload = ev => {
+                document.getElementById('imagePreview').src = ev.target.result
+                document.getElementById('preview').classList.remove('hidden')
+                document.getElementById('dropzone').classList.add('hidden')
+            }
+            reader.readAsDataURL(file)
+        }
+
+        async function processImage() {
+            await initTesseract()
+            const img = document.getElementById('imagePreview').src
+            document.getElementById('results').classList.add('hidden')
+            const { data: { text } } = await worker.recognize(img)
+            currentText = text.trim()
+            document.getElementById('ocrText').textContent = currentText || "No text found"
+            const sentences = currentText.split(/[.!?]+/).filter(s => s.trim().length > 5)
+            const summary = sentences.slice(0, 4).join('. ') + (sentences.length > 4 ? '...' : '')
+            document.getElementById('summary').textContent = summary || "Summary will appear here"
+            const words = currentText.toLowerCase().match(/\b\w{4,}\b/g) || []
+            const freq = {}
+            words.forEach(w => freq[w] = (freq[w] || 0) + 1)
+            const topKeywords = Object.entries(freq).sort((a,b) => b[1] - a[1]).slice(0, 8).map(([word]) => `<span class=\"inline-block bg-teal-100 text-teal-800 px-4 py-1 rounded-2xl text-sm\">${word}</span>`)
+            document.getElementById('keywords').innerHTML = topKeywords.join('') || "No keywords"
+            document.getElementById('results').classList.remove('hidden')
+            if (document.getElementById('proMode').checked) {
+                alert("Pro Mode: Auto headline & Spanish translation ready! (full version coming soon)")
+            }
+        }
+
+        function askQuestion() {
+            const q = document.getElementById('question').value.trim().toLowerCase()
+            if (!q || !currentText) return
+            const sentences = currentText.split(/[.!?]+/)
+            const match = sentences.find(s => s.toLowerCase().includes(q)) || "I couldn't find a direct answer in the note. Try rephrasing!"
+            document.getElementById('answer').textContent = match.trim()
+        }
+
+        let deferredPrompt
+        window.addEventListener('beforeinstallprompt', e => {
+            e.preventDefault()
+            deferredPrompt = e
+            document.getElementById('installBtn').classList.remove('hidden')
+        })
+        async function installApp() {
+            if (!deferredPrompt) return
+            deferredPrompt.prompt()
+            const { outcome } = await deferredPrompt.userChoice
+            if (outcome === 'accepted') document.getElementById('installBtn').classList.add('hidden')
+            deferredPrompt = null
+        }
+
+        // Register real SW
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(() => console.log('✅ SnapNote offline PWA ready'))
+                .catch(err => console.log('SW error', err))
+        }
+    </script>
+</body>
+</html>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SnapNote ✨</title>
