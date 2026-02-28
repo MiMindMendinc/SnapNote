@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SnapNote ✨</title>
+  <meta name="description" content="Turn any photo into clean notes — 100% offline, private AI in your browser." />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#0f766e" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    header {
+      width: 100%;
+      background: #0f766e;
+      padding: 1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    header h1 { font-size: 1.5rem; font-weight: 700; color: #fff; }
+    header p  { font-size: 0.85rem; color: #ccfbf1; }
+    main {
+      width: 100%;
+      max-width: 720px;
+      padding: 2rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .card {
+      background: #1e293b;
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .card h2 { font-size: 1.1rem; color: #5eead4; }
+    .drop-zone {
+      border: 2px dashed #0f766e;
+      border-radius: 0.5rem;
+      padding: 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: background 0.2s;
+      color: #94a3b8;
+    }
+    .drop-zone:hover, .drop-zone.dragover { background: #164e63; }
+    .drop-zone input[type=file] { display: none; }
+    #preview { max-width: 100%; border-radius: 0.5rem; display: none; }
+    textarea {
+      width: 100%;
+      background: #0f172a;
+      color: #f8fafc;
+      border: 1px solid #334155;
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+      font-size: 0.95rem;
+      resize: vertical;
+      min-height: 120px;
+    }
+    button {
+      background: #0f766e;
+      color: #fff;
+      border: none;
+      border-radius: 0.5rem;
+      padding: 0.65rem 1.25rem;
+      font-size: 1rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    button:hover { background: #0d9488; }
+    button:disabled { background: #334155; cursor: not-allowed; }
+    #result { white-space: pre-wrap; font-size: 0.9rem; color: #e2e8f0; }
+    #status { font-size: 0.85rem; color: #94a3b8; min-height: 1.2em; }
+    #install-btn { display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>SnapNote ✨</h1>
+      <p>Offline AI • Photo → Notes • 100% Private</p>
+    </div>
+    <button id="install-btn" style="margin-left:auto">📲 Install App</button>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2>📷 Snap or Upload a Photo</h2>
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" id="file-input" accept="image/*" />
+        <p>Drag &amp; drop an image here, or <strong>click to upload</strong></p>
+        <p style="font-size:0.8rem;margin-top:0.5rem">Supports JPG, PNG, WEBP</p>
+      </div>
+      <img id="preview" alt="Preview" />
+      <div id="status"></div>
+      <button id="ocr-btn" disabled>🔍 Extract Text (OCR)</button>
+    </div>
+
+    <div class="card">
+      <h2>📝 Extracted Text</h2>
+      <textarea id="ocr-output" placeholder="Extracted text will appear here…" readonly></textarea>
+    </div>
+
+    <div class="card">
+      <h2>💡 Ask a Question</h2>
+      <input type="text" id="question" placeholder="e.g. What is the main topic?" style="background:#0f172a;color:#f8fafc;border:1px solid #334155;border-radius:0.5rem;padding:0.65rem;width:100%;font-size:0.95rem" />
+      <button id="qa-btn" disabled>🤖 Get Answer</button>
+      <div id="result"></div>
+    </div>
+  </main>
+
+  <script>
+    // Service Worker registration
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('SW registered', reg.scope))
+        .catch(err => console.error('SW registration failed', err));
+    }
+
+    // PWA install prompt
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('install-btn').style.display = 'inline-block';
+    });
+    document.getElementById('install-btn').addEventListener('click', () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
+    });
+
+    // File upload / drag-drop
+    const dropZone   = document.getElementById('drop-zone');
+    const fileInput  = document.getElementById('file-input');
+    const preview    = document.getElementById('preview');
+    const ocrBtn     = document.getElementById('ocr-btn');
+    const ocrOutput  = document.getElementById('ocr-output');
+    const qaBtn      = document.getElementById('qa-btn');
+    const questionEl = document.getElementById('question');
+    const resultEl   = document.getElementById('result');
+    const statusEl   = document.getElementById('status');
+
+    let currentFile = null;
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      handleFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', () => handleFile(fileInput.files[0]));
+
+    function handleFile(file) {
+      if (!file || !file.type.startsWith('image/')) return;
+      currentFile = file;
+      const url = URL.createObjectURL(file);
+      preview.src = url;
+      preview.style.display = 'block';
+      ocrBtn.disabled = false;
+      ocrOutput.value = '';
+      resultEl.textContent = '';
+      qaBtn.disabled = true;
+      statusEl.textContent = 'Image loaded. Click "Extract Text" to begin OCR.';
+    }
+
+    // OCR via Tesseract.js (CDN — loads only when needed)
+    ocrBtn.addEventListener('click', async () => {
+      if (!currentFile) return;
+      ocrBtn.disabled = true;
+      statusEl.textContent = '⏳ Loading OCR engine…';
+      try {
+        if (typeof Tesseract === 'undefined') {
+          await loadScript('https://unpkg.com/tesseract.js@5/dist/tesseract.min.js');
+        }
+        statusEl.textContent = '🔍 Running OCR…';
+        const { data: { text } } = await Tesseract.recognize(currentFile, 'eng');
+        ocrOutput.value = text.trim();
+        ocrOutput.removeAttribute('readonly');
+        statusEl.textContent = '✅ OCR complete.';
+        if (text.trim()) qaBtn.disabled = false;
+      } catch (err) {
+        statusEl.textContent = '❌ OCR failed: ' + err.message;
+      } finally {
+        ocrBtn.disabled = false;
+      }
+    });
+
+    // Q&A (simple keyword search — no network needed for basic mode)
+    qaBtn.addEventListener('click', () => {
+      const q   = questionEl.value.trim().toLowerCase();
+      const txt = ocrOutput.value.trim();
+      if (!q || !txt) return;
+
+      // Sentence-level keyword matching
+      const sentences = txt.match(/[^.!?]+[.!?]*/g) || [txt];
+      const scored = sentences.map(s => ({
+        s,
+        score: q.split(/\s+/).filter(w => w.length > 2).reduce((n, w) => n + (s.toLowerCase().includes(w) ? 1 : 0), 0)
+      }));
+      scored.sort((a, b) => b.score - a.score);
+      const best = scored[0];
+      resultEl.textContent = best && best.score > 0
+        ? best.s.trim()
+        : 'No relevant answer found in the extracted text.';
+    });
+
+    function loadScript(src) {
+      return new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = src; s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+      });
+    }
+  </script>
+</body>
+</html>
