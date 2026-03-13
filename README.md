@@ -13,7 +13,7 @@ Offline photo-to-notes converter with OCR, Q&A, and summaries for mental health 
 Removes friction from mental health documentation, allowing families to digitize notes instantly without privacy concerns. Built for overwhelmed caregivers and patients.
 
 ## Quick Start
-Visit [live demo](https://mimindmendmendinc.github.io/snapnote) or:
+Visit [live demo](https://mimindmendinc.github.io/snapnote) or:
 ```bash
 git clone https://github.com/MiMindMendinc/SnapNote.git
 cd SnapNote
