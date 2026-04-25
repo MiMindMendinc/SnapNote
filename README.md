@@ -1,69 +1,106 @@
-# SnapNote: Offline Photo-to-Notes & AI Summarizer
+# SnapNote
 
-**Turn any photo into clean notes, summaries, and instant answers—100% offline and private.**
+**Privacy-first photo-to-notes and summarization prototype.**
 
-`SnapNote` is a powerful, privacy-first tool designed to help families and caregivers digitize and understand information instantly. Developed by **Michigan MindMend Inc.**, it uses on-device OCR and AI to process images directly in your browser, ensuring your sensitive data never leaves your device.
+SnapNote is a Michigan MindMend Inc. portfolio project exploring how families, caregivers, students, and community workers can turn photos or documents into cleaner notes, summaries, and question-answering workflows with a privacy-first design.
 
-## 🎯 Features
+The goal is simple: make everyday information easier to understand without default cloud harvesting.
 
-- **Photo-to-Text (OCR)**: High-accuracy text extraction from any image or document.
-- **Offline AI Q&A**: Ask questions about your notes and get instant answers without an internet connection.
-- **Smart Summarization**: Automatically generate concise summaries and key takeaways from long documents.
-- **Privacy-First Design**: 100% offline processing—no data is ever uploaded to a server.
-- **PWA Ready**: Installable on any device for rapid, offline access.
-- **Mental Health Focus**: Designed to help caregivers manage documentation with ease and privacy.
+---
 
-## 🚀 Quick Start
+## What It Demonstrates
 
-### Installation
+- Photo/document-to-text workflow design
+- Browser-first product prototyping
+- OCR + summarization / Q&A direction
+- Privacy-first UX for families and caregivers
+- Simple installable PWA-style experience
+- Clear product communication for non-technical users
+
+---
+
+## Features Direction
+
+- **Photo-to-text extraction** for images and simple documents
+- **Clean note generation** from extracted text
+- **Summary and key-takeaway workflow** for long notes
+- **Question-answering direction** over captured text
+- **Local/browser-first design direction** where supported by the chosen model/runtime
+- **Family/caregiver-friendly UX** for private everyday documents
+
+Implementation details should be verified per deployment. If external CDNs, remote models, or hosted assets are used, the deployment should not be described as fully offline until those dependencies are removed or locally bundled.
+
+---
+
+## Architecture Direction
+
+```text
+Image / Document
+   ↓
+OCR extraction
+   ↓
+Clean text notes
+   ↓
+Summary / Q&A workflow
+   ↓
+User saves or copies results
+```
+
+---
+
+## Quick Start
 
 ```bash
 git clone https://github.com/MiMindMendinc/SnapNote.git
 cd SnapNote
-# Open index.html in any modern browser
+# Open index.html in a modern browser
 ```
-
-### Basic Usage
-
-1. **Open SnapNote**: Launch the `index.html` file in your browser.
-2. **Upload Photo**: Select or take a photo of the document you want to digitize.
-3. **Extract & Summarize**: The AI will automatically extract text and provide a summary.
-4. **Ask Questions**: Use the Q&A feature to dive deeper into the content.
-
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────┐
-│   User Image / Document                 │
-└──────────────┬──────────────────────────┘
-               │
-               ▼
-┌─────────────────────────────────────────┐
-│   SnapNote (Offline PWA)                │
-│  ┌───────────────────────────────────┐  │
-│  │ OCR Engine (Tesseract.js)         │  │
-│  └───────────────────────────────────┘  │
-│  ┌───────────────────────────────────┐  │
-│  │ AI Engine (Xenova Transformers)   │  │
-│  │ - BERT-based Q&A                  │  │
-│  │ - Summarization                   │  │
-│  └───────────────────────────────────┘  │
-└─────────────────────────────────────────┘
-               │
-               ▼
-        Digital Notes & AI Insights
-```
-
-## 🔒 Privacy & Security
-
-- ✅ 100% Offline: All processing happens in your browser's memory.
-- ✅ Zero Data Collection: We don't track, store, or see your documents.
-- ✅ Secure by Default: No server-side components to exploit.
-
-## 📄 License
-
-MIT - Built for the people, not the platforms.
 
 ---
 
-**Built by Michigan MindMend Inc.** | Privacy-first AI for families | [Website](https://github.com/MiMindMendinc)
+## Privacy Model
+
+SnapNote is designed toward local-first processing. Before using it with sensitive documents, verify the exact deployment path:
+
+- whether OCR assets are loaded locally or remotely
+- whether AI models are bundled locally or fetched from a CDN
+- whether any analytics, hosting logs, or third-party scripts are present
+- whether documents ever leave the device
+
+---
+
+## What It Does Not Claim
+
+SnapNote does **not** currently claim:
+
+- guaranteed 100% offline operation in every deployment
+- medical, legal, or financial advice
+- perfect OCR accuracy
+- certified privacy/security compliance
+- safe handling of regulated records without review
+
+---
+
+## Professional Roadmap
+
+- [ ] Add screenshots or short demo GIF
+- [ ] Add a clear offline dependency checklist
+- [ ] Bundle required assets locally where possible
+- [ ] Add simple browser smoke test
+- [ ] Add `docs/PRIVACY.md`
+- [ ] Add live demo link if available
+- [ ] Add example use cases for school, family, and caregiver workflows
+
+---
+
+## Built By
+
+**Lyle Perrien II**  
+Founder, **Michigan MindMend Inc.**  
+Owosso, Michigan
+
+Building privacy-first, offline-capable AI tools for families, communities, and trust-sensitive environments.
+
+## License
+
+MIT
