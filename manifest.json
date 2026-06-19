@@ -1,7 +1,7 @@
 {
   "name": "SnapNote",
   "short_name": "SnapNote",
-  "description": "Turn any photo into clean notes — 100% offline, private AI in your browser.",
+  "description": "Browser photo-to-notes prototype with local processing after external assets load.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",
