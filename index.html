@@ -83,7 +83,7 @@
         </div>
     </main>
 
-    <footer class="text-center text-xs text-teal-700/60 py-8">100% offline • Private • Built for Michigan families ❤️</footer>
+    <footer class="text-center text-xs text-teal-700/60 py-8">Local processing prototype • External OCR/UI assets load from CDNs</footer>
 
     <script>
         tailwind.config = { content: ["*"] }
@@ -165,12 +165,13 @@
         // Register real SW
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js')
-                .then(() => console.log('✅ SnapNote offline PWA ready'))
+                .then(() => console.log('SnapNote app shell cached'))
                 .catch(err => console.log('SW error', err))
         }
     </script>
 </body>
 </html>
+<!-- The superseded prototype below is intentionally disabled pending removal.
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SnapNote ✨</title>
@@ -399,3 +400,4 @@
   </script>
 </body>
 </html>
+-->
