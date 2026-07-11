@@ -1,5 +1,17 @@
-const CACHE = 'snapnote-v2';
-const ASSETS = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png'];
+const CACHE = 'snapnote-v3';
+const ASSETS = [
+  './',
+  './index.html',
+  './manifest.json',
+  './sw.js',
+  './icon-192.png',
+  './icon-512.png',
+  './assets/css/app.css',
+  './assets/vendor/tesseract.min.js',
+  './assets/vendor/worker.min.js',
+  './assets/vendor/tesseract-core.wasm.js',
+  './assets/vendor/eng.traineddata.gz'
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));

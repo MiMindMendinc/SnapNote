@@ -6,25 +6,11 @@
     <title>SnapNote ✨ — Next Gen</title>
     <meta name="description" content="Turn any photo into clean notes — privacy-first OCR, summaries, and Q&A in your browser.">
     <meta name="theme-color" content="#0f766e">
-    <link rel="manifest" href="/manifest.json">
-    <link rel="icon" href="/icon-192.png" type="image/png">
-    <link rel="apple-touch-icon" href="/icon-192.png">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/tesseract.js@v5.0.0/dist/tesseract.min.js"></script>
-    <style>
-        body { font-family: system-ui, -apple-system, sans-serif; }
-        .teal { color: #0f766e; }
-        .navy { color: #1e3a8a; }
-        .offwhite { background-color: #f9f7f0; }
-        .dropzone { transition: all 0.3s; }
-        .dropzone.dragover { background-color: #ccfbf1; border-color: #0f766e; }
-        .badge { transition: transform 0.2s, opacity 0.3s; }
-        .badge.locked { opacity: 0.35; filter: grayscale(1); }
-        .badge.unlocked { opacity: 1; transform: scale(1.02); }
-        .badge.unlocked:hover { transform: scale(1.08); }
-        @keyframes pulse-ring { 0%, 100% { box-shadow: 0 0 0 0 rgba(15,118,110,0.4); } 50% { box-shadow: 0 0 0 8px rgba(15,118,110,0); } }
-        .processing { animation: pulse-ring 1.5s infinite; }
-    </style>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icon-192.png" type="image/png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="stylesheet" href="assets/css/app.css">
+    <script src="assets/vendor/tesseract.min.js"></script>
 </head>
 <body class="offwhite min-h-screen flex flex-col text-navy">
     <header class="bg-white shadow-sm border-b border-teal-200 sticky top-0 z-10">
@@ -138,12 +124,10 @@
     </main>
 
     <footer class="text-center text-xs text-teal-700/60 py-8 px-4">
-        SnapNote Next Gen • Local OCR after CDN assets load • <button type="button" onclick="toggleBadges()" class="underline hover:text-teal-800">View badges</button>
+        SnapNote Next Gen • 100% local processing • <button type="button" onclick="toggleBadges()" class="underline hover:text-teal-800">View badges</button>
     </footer>
 
     <script>
-        tailwind.config = { content: ['*'] }
-
         const BADGES = [
             { id: 'first_snap', emoji: '📸', name: 'First Snap', desc: 'Upload your first photo' },
             { id: 'text_master', emoji: '📝', name: 'Text Master', desc: 'Extract text with OCR' },
@@ -225,9 +209,14 @@
         async function initTesseract() {
             if (!worker) {
                 showStatus('⏳ Loading OCR engine…')
-                worker = await Tesseract.createWorker('eng', 1, { logger: m => {
-                    if (m.status === 'recognizing text') showStatus(`🔍 Reading text… ${Math.round(m.progress * 100)}%`)
-                }})
+                worker = await Tesseract.createWorker('eng', 1, {
+                    workerPath: 'assets/vendor/worker.min.js',
+                    corePath: 'assets/vendor/tesseract-core.wasm.js',
+                    langPath: 'assets/vendor',
+                    logger: m => {
+                        if (m.status === 'recognizing text') showStatus(`🔍 Reading text… ${Math.round(m.progress * 100)}%`)
+                    }
+                })
             }
         }
 
@@ -416,7 +405,7 @@
         })
 
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js')
+            navigator.serviceWorker.register('sw.js')
                 .then(() => console.log('SnapNote app shell cached'))
                 .catch(err => console.log('SW error', err))
         }
