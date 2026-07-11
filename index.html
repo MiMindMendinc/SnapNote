@@ -3,11 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SnapNote ✨</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/tesseract.js@v5.0.0/dist/tesseract.min.js"></script>
+    <title>SnapNote ✨ — Next Gen</title>
+    <meta name="description" content="Turn any photo into clean notes — privacy-first OCR, summaries, and Q&A in your browser.">
+    <meta name="theme-color" content="#0f766e">
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" href="/icon-192.png" type="image/png">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/tesseract.js@v5.0.0/dist/tesseract.min.js"></script>
     <style>
         body { font-family: system-ui, -apple-system, sans-serif; }
         .teal { color: #0f766e; }
@@ -15,46 +18,81 @@
         .offwhite { background-color: #f9f7f0; }
         .dropzone { transition: all 0.3s; }
         .dropzone.dragover { background-color: #ccfbf1; border-color: #0f766e; }
+        .badge { transition: transform 0.2s, opacity 0.3s; }
+        .badge.locked { opacity: 0.35; filter: grayscale(1); }
+        .badge.unlocked { opacity: 1; transform: scale(1.02); }
+        .badge.unlocked:hover { transform: scale(1.08); }
+        @keyframes pulse-ring { 0%, 100% { box-shadow: 0 0 0 0 rgba(15,118,110,0.4); } 50% { box-shadow: 0 0 0 8px rgba(15,118,110,0); } }
+        .processing { animation: pulse-ring 1.5s infinite; }
     </style>
 </head>
 <body class="offwhite min-h-screen flex flex-col text-navy">
-    <header class="bg-white shadow-sm border-b border-teal-200">
-        <div class="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
+    <header class="bg-white shadow-sm border-b border-teal-200 sticky top-0 z-10">
+        <div class="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
             <div class="flex items-center gap-3">
                 <div class="w-9 h-9 bg-teal-600 rounded-2xl flex items-center justify-center text-white text-2xl">📸</div>
-                <h1 class="text-3xl font-bold tracking-tight teal">SnapNote</h1>
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-bold tracking-tight teal leading-tight">SnapNote</h1>
+                    <p class="text-xs text-teal-600 hidden sm:block">Next Gen • Privacy-first photo notes</p>
+                </div>
             </div>
-            <button onclick="installApp()" id="installBtn" class="hidden bg-teal-600 hover:bg-teal-700 text-white px-6 py-2 rounded-2xl font-medium text-sm">Install App</button>
+            <div class="flex items-center gap-2">
+                <button onclick="toggleBadges()" id="badgeBtn" class="bg-teal-50 hover:bg-teal-100 text-teal-800 px-4 py-2 rounded-2xl font-medium text-sm flex items-center gap-2" title="View achievements">
+                    🏅 <span id="badgeCount">0/6</span>
+                </button>
+                <button onclick="installApp()" id="installBtn" class="hidden bg-teal-600 hover:bg-teal-700 text-white px-4 sm:px-6 py-2 rounded-2xl font-medium text-sm">Install</button>
+            </div>
         </div>
     </header>
 
-    <main class="flex-1 max-w-3xl mx-auto w-full px-6 py-8">
-        <div class="bg-white rounded-3xl shadow-xl p-8">
+    <!-- Achievement Badges Panel -->
+    <div id="badgesPanel" class="hidden bg-white border-b border-teal-100 shadow-inner">
+        <div class="max-w-4xl mx-auto px-6 py-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold teal">🏅 Achievements</h2>
+                <span id="badgeProgress" class="text-sm text-teal-600 font-medium">0 of 6 unlocked</span>
+            </div>
+            <div id="badgeGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3"></div>
+        </div>
+    </div>
+
+    <main class="flex-1 max-w-4xl mx-auto w-full px-6 py-8">
+        <div class="bg-white rounded-3xl shadow-xl p-6 sm:p-8">
+            <div id="statusBar" class="hidden mb-4 px-4 py-3 rounded-2xl bg-teal-50 text-teal-800 text-sm font-medium"></div>
+
             <!-- Upload Area -->
-            <div id="dropzone" class="dropzone border-4 border-dashed border-teal-300 rounded-3xl h-80 flex flex-col items-center justify-center text-center cursor-pointer hover:border-teal-500">
+            <div id="dropzone" class="dropzone border-4 border-dashed border-teal-300 rounded-3xl h-72 sm:h-80 flex flex-col items-center justify-center text-center cursor-pointer hover:border-teal-500">
                 <div class="text-6xl mb-4">📷</div>
                 <p class="text-xl font-medium navy">Drop a photo or tap to upload</p>
-                <p class="text-sm text-teal-600 mt-2">Handwritten notes, receipts, forms — anything</p>
-                <input type="file" id="fileInput" accept="image/*" class="hidden">
-                <button onclick="document.getElementById('fileInput').click()" class="mt-6 px-8 py-3 bg-teal-100 hover:bg-teal-200 text-teal-800 rounded-2xl text-sm font-semibold">📸 Take Photo</button>
+                <p class="text-sm text-teal-600 mt-2 px-4">Handwritten notes, receipts, forms — anything</p>
+                <input type="file" id="fileInput" accept="image/*" capture="environment" class="hidden">
+                <button type="button" onclick="document.getElementById('fileInput').click()" class="mt-6 px-8 py-3 bg-teal-100 hover:bg-teal-200 text-teal-800 rounded-2xl text-sm font-semibold">📸 Take Photo</button>
             </div>
 
             <!-- Preview -->
             <div id="preview" class="hidden mt-8">
-                <img id="imagePreview" class="mx-auto rounded-2xl shadow-md max-h-96">
-                <button onclick="processImage()" class="mt-6 w-full bg-teal-600 hover:bg-teal-700 text-white py-4 rounded-3xl font-semibold text-lg flex items-center justify-center gap-3">✨ Extract Text & Summarize</button>
+                <img id="imagePreview" alt="Uploaded preview" class="mx-auto rounded-2xl shadow-md max-h-96">
+                <button type="button" onclick="processImage()" id="processBtn" class="mt-6 w-full bg-teal-600 hover:bg-teal-700 text-white py-4 rounded-3xl font-semibold text-lg flex items-center justify-center gap-3">
+                    ✨ Extract Text & Summarize
+                </button>
             </div>
 
             <!-- Results -->
             <div id="results" class="hidden mt-10 space-y-8">
                 <div>
-                    <h2 class="text-xl font-semibold mb-3 teal">📝 Extracted Text</h2>
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-xl font-semibold teal">📝 Extracted Text</h2>
+                        <button type="button" onclick="copyText('ocrText')" class="text-sm text-teal-600 hover:text-teal-800 font-medium">Copy</button>
+                    </div>
                     <div id="ocrText" class="bg-offwhite p-6 rounded-2xl text-base leading-relaxed whitespace-pre-wrap min-h-[120px]"></div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <h2 class="text-xl font-semibold mb-3 teal">📋 Summary</h2>
+                        <div class="flex items-center justify-between mb-3">
+                            <h2 class="text-xl font-semibold teal">📋 Summary</h2>
+                            <button type="button" onclick="copyText('summary')" class="text-sm text-teal-600 hover:text-teal-800 font-medium">Copy</button>
+                        </div>
                         <div id="summary" class="bg-offwhite p-6 rounded-2xl text-base"></div>
                     </div>
                     <div>
@@ -63,42 +101,139 @@
                     </div>
                 </div>
 
+                <div id="proResults" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h2 class="text-xl font-semibold mb-3 teal">📰 Headline</h2>
+                        <div id="headline" class="bg-teal-50 p-6 rounded-2xl text-base font-medium"></div>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-semibold mb-3 teal">🌐 Español</h2>
+                        <div id="translation" class="bg-teal-50 p-6 rounded-2xl text-base"></div>
+                    </div>
+                </div>
+
                 <div>
                     <h2 class="text-xl font-semibold mb-3 teal">❓ Ask anything</h2>
                     <div class="flex gap-3">
                         <input id="question" type="text" placeholder="What is the due date?" class="flex-1 px-6 py-4 rounded-3xl border border-teal-200 focus:outline-none focus:border-teal-500">
-                        <button onclick="askQuestion()" class="bg-teal-600 hover:bg-teal-700 text-white px-10 rounded-3xl font-semibold">Ask</button>
+                        <button type="button" onclick="askQuestion()" class="bg-teal-600 hover:bg-teal-700 text-white px-6 sm:px-10 rounded-3xl font-semibold">Ask</button>
                     </div>
                     <div id="answer" class="mt-4 bg-offwhite p-6 rounded-2xl min-h-[60px]"></div>
+                </div>
+
+                <div class="flex flex-wrap gap-3 pt-2">
+                    <button type="button" onclick="exportNotes()" class="px-6 py-3 bg-teal-100 hover:bg-teal-200 text-teal-800 rounded-2xl text-sm font-semibold">💾 Export .txt</button>
+                    <button type="button" onclick="resetApp()" class="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl text-sm font-semibold">🔄 New Photo</button>
                 </div>
 
                 <!-- Pro Mode -->
                 <div class="pt-6 border-t border-teal-100">
                     <label class="flex items-center gap-3 cursor-pointer">
                         <input type="checkbox" id="proMode" class="w-5 h-5 accent-teal-600">
-                        <span class="text-lg font-medium">Pro Mode (headlines + translation)</span>
+                        <span class="text-lg font-medium">Pro Mode (headlines + Spanish translation)</span>
                     </label>
                 </div>
             </div>
         </div>
     </main>
 
-    <footer class="text-center text-xs text-teal-700/60 py-8">Local processing prototype • External OCR/UI assets load from CDNs</footer>
+    <footer class="text-center text-xs text-teal-700/60 py-8 px-4">
+        SnapNote Next Gen • Local OCR after CDN assets load • <button type="button" onclick="toggleBadges()" class="underline hover:text-teal-800">View badges</button>
+    </footer>
 
     <script>
-        tailwind.config = { content: ["*"] }
+        tailwind.config = { content: ['*'] }
+
+        const BADGES = [
+            { id: 'first_snap', emoji: '📸', name: 'First Snap', desc: 'Upload your first photo' },
+            { id: 'text_master', emoji: '📝', name: 'Text Master', desc: 'Extract text with OCR' },
+            { id: 'smart_ask', emoji: '❓', name: 'Smart Ask', desc: 'Ask a question about your note' },
+            { id: 'pro_user', emoji: '⭐', name: 'Pro User', desc: 'Use Pro Mode on a note' },
+            { id: 'app_installed', emoji: '📲', name: 'Installed', desc: 'Install SnapNote as an app' },
+            { id: 'power_user', emoji: '🏆', name: 'Power User', desc: 'Unlock every achievement' }
+        ]
+
+        const SPANISH = {
+            the: 'el', a: 'un', an: 'una', and: 'y', or: 'o', is: 'es', are: 'son', was: 'era',
+            were: 'eran', be: 'ser', have: 'tener', has: 'tiene', had: 'tenía', do: 'hacer', does: 'hace',
+            did: 'hizo', will: 'será', would: 'sería', can: 'puede', could: 'podría', should: 'debería',
+            must: 'debe', may: 'puede', not: 'no', in: 'en', on: 'en', at: 'en', to: 'a', for: 'para',
+            of: 'de', with: 'con', from: 'de', by: 'por', this: 'este', that: 'ese', these: 'estos',
+            those: 'esos', it: 'lo', they: 'ellos', we: 'nosotros', you: 'tú', he: 'él', she: 'ella',
+            i: 'yo', my: 'mi', your: 'tu', our: 'nuestro', their: 'su', what: 'qué', when: 'cuándo',
+            where: 'dónde', who: 'quién', why: 'por qué', how: 'cómo', all: 'todo', some: 'algunos',
+            note: 'nota', notes: 'notas', date: 'fecha', due: 'vencimiento', meeting: 'reunión',
+            appointment: 'cita', reminder: 'recordatorio', important: 'importante', please: 'por favor',
+            thank: 'gracias', thanks: 'gracias', today: 'hoy', tomorrow: 'mañana', yesterday: 'ayer',
+            week: 'semana', month: 'mes', year: 'año', time: 'hora', phone: 'teléfono', email: 'correo',
+            address: 'dirección', name: 'nombre', school: 'escuela', doctor: 'doctor', patient: 'paciente',
+            medicine: 'medicina', prescription: 'receta', receipt: 'recibo', total: 'total', amount: 'cantidad',
+            payment: 'pago', invoice: 'factura', summary: 'resumen', document: 'documento', photo: 'foto',
+            text: 'texto', question: 'pregunta', answer: 'respuesta', copy: 'copiar', save: 'guardar'
+        }
+
         let worker = null
-        let currentText = ""
+        let currentText = ''
+        let unlocked = loadBadges()
+
+        function loadBadges() {
+            try { return JSON.parse(localStorage.getItem('snapnote_badges') || '{}') } catch { return {} }
+        }
+
+        function saveBadges() {
+            localStorage.setItem('snapnote_badges', JSON.stringify(unlocked))
+        }
+
+        function unlockBadge(id) {
+            if (unlocked[id]) return
+            unlocked[id] = Date.now()
+            saveBadges()
+            renderBadges()
+            showStatus(`🏅 Achievement unlocked: ${BADGES.find(b => b.id === id)?.name}!`)
+        }
+
+        function checkPowerUser() {
+            const core = BADGES.filter(b => b.id !== 'power_user').every(b => unlocked[b.id])
+            if (core) unlockBadge('power_user')
+        }
+
+        function renderBadges() {
+            const grid = document.getElementById('badgeGrid')
+            grid.innerHTML = BADGES.map(b => {
+                const on = !!unlocked[b.id]
+                return `<div class="badge ${on ? 'unlocked' : 'locked'} bg-offwhite rounded-2xl p-3 text-center" title="${b.desc}">
+                    <div class="text-3xl mb-1">${b.emoji}</div>
+                    <div class="text-xs font-semibold navy">${b.name}</div>
+                </div>`
+            }).join('')
+            const count = Object.keys(unlocked).length
+            document.getElementById('badgeCount').textContent = `${count}/6`
+            document.getElementById('badgeProgress').textContent = `${count} of 6 unlocked`
+        }
+
+        function toggleBadges() {
+            document.getElementById('badgesPanel').classList.toggle('hidden')
+        }
+
+        function showStatus(msg) {
+            const bar = document.getElementById('statusBar')
+            bar.textContent = msg
+            bar.classList.remove('hidden')
+            setTimeout(() => bar.classList.add('hidden'), 4000)
+        }
 
         async function initTesseract() {
             if (!worker) {
-                worker = await Tesseract.createWorker('eng', 1, { logger: m => console.log(m) })
+                showStatus('⏳ Loading OCR engine…')
+                worker = await Tesseract.createWorker('eng', 1, { logger: m => {
+                    if (m.status === 'recognizing text') showStatus(`🔍 Reading text… ${Math.round(m.progress * 100)}%`)
+                }})
             }
         }
 
-        // Drag & Drop
         const dropzone = document.getElementById('dropzone')
         const fileInput = document.getElementById('fileInput')
+        dropzone.addEventListener('click', () => fileInput.click())
         dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover') })
         dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'))
         dropzone.addEventListener('drop', e => {
@@ -109,43 +244,151 @@
         fileInput.addEventListener('change', e => handleFile(e.target.files[0]))
 
         function handleFile(file) {
-            if (!file) return
+            if (!file || !file.type.startsWith('image/')) {
+                showStatus('Please choose an image file (JPG, PNG, WEBP).')
+                return
+            }
+            unlockBadge('first_snap')
             const reader = new FileReader()
             reader.onload = ev => {
                 document.getElementById('imagePreview').src = ev.target.result
                 document.getElementById('preview').classList.remove('hidden')
                 document.getElementById('dropzone').classList.add('hidden')
+                document.getElementById('results').classList.add('hidden')
             }
             reader.readAsDataURL(file)
         }
 
-        async function processImage() {
-            await initTesseract()
-            const img = document.getElementById('imagePreview').src
-            document.getElementById('results').classList.add('hidden')
-            const { data: { text } } = await worker.recognize(img)
-            currentText = text.trim()
-            document.getElementById('ocrText').textContent = currentText || "No text found"
-            const sentences = currentText.split(/[.!?]+/).filter(s => s.trim().length > 5)
-            const summary = sentences.slice(0, 4).join('. ') + (sentences.length > 4 ? '...' : '')
-            document.getElementById('summary').textContent = summary || "Summary will appear here"
-            const words = currentText.toLowerCase().match(/\b\w{4,}\b/g) || []
+        function buildSummary(text) {
+            const sentences = text.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 5)
+            if (!sentences.length) return 'No summary available.'
+            return sentences.slice(0, 4).join('. ') + (sentences.length > 4 ? '…' : '.')
+        }
+
+        function buildKeywords(text) {
+            const words = text.toLowerCase().match(/\b\w{4,}\b/g) || []
             const freq = {}
-            words.forEach(w => freq[w] = (freq[w] || 0) + 1)
-            const topKeywords = Object.entries(freq).sort((a,b) => b[1] - a[1]).slice(0, 8).map(([word]) => `<span class=\"inline-block bg-teal-100 text-teal-800 px-4 py-1 rounded-2xl text-sm\">${word}</span>`)
-            document.getElementById('keywords').innerHTML = topKeywords.join('') || "No keywords"
-            document.getElementById('results').classList.remove('hidden')
-            if (document.getElementById('proMode').checked) {
-                alert("Pro Mode: Auto headline & Spanish translation ready! (full version coming soon)")
+            words.forEach(w => { freq[w] = (freq[w] || 0) + 1 })
+            return Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 8)
+        }
+
+        function buildHeadline(text) {
+            const first = text.split(/[.!?\n]+/).map(s => s.trim()).find(s => s.length > 3)
+            if (!first) return 'Untitled Note'
+            return first.length > 80 ? first.slice(0, 77) + '…' : first
+        }
+
+        function translateToSpanish(text) {
+            return text.split(/(\s+|[.,!?;:()""''\[\]])/).map(token => {
+                const key = token.toLowerCase().replace(/[^a-z']/g, '')
+                if (!key) return token
+                const translated = SPANISH[key]
+                if (!translated) return token
+                return token[0] === token[0].toUpperCase() ? translated.charAt(0).toUpperCase() + translated.slice(1) : translated
+            }).join('')
+        }
+
+        async function processImage() {
+            const btn = document.getElementById('processBtn')
+            btn.disabled = true
+            btn.classList.add('processing')
+            try {
+                await initTesseract()
+                const img = document.getElementById('imagePreview').src
+                document.getElementById('results').classList.add('hidden')
+                const { data: { text } } = await worker.recognize(img)
+                currentText = text.trim()
+                document.getElementById('ocrText').textContent = currentText || 'No text found'
+                document.getElementById('summary').textContent = buildSummary(currentText)
+                const kws = buildKeywords(currentText)
+                document.getElementById('keywords').innerHTML = kws.length
+                    ? kws.map(([word]) => `<span class="inline-block bg-teal-100 text-teal-800 px-4 py-1 rounded-2xl text-sm">${word}</span>`).join('')
+                    : '<span class="text-sm text-teal-600">No keywords</span>'
+
+                const proOn = document.getElementById('proMode').checked
+                const proBox = document.getElementById('proResults')
+                if (proOn && currentText) {
+                    document.getElementById('headline').textContent = buildHeadline(currentText)
+                    document.getElementById('translation').textContent = translateToSpanish(buildSummary(currentText))
+                    proBox.classList.remove('hidden')
+                    unlockBadge('pro_user')
+                } else {
+                    proBox.classList.add('hidden')
+                }
+
+                document.getElementById('results').classList.remove('hidden')
+                unlockBadge('text_master')
+                checkPowerUser()
+                showStatus('✅ Text extracted successfully!')
+            } catch (err) {
+                showStatus('❌ OCR failed: ' + err.message)
+            } finally {
+                btn.disabled = false
+                btn.classList.remove('processing')
             }
         }
 
         function askQuestion() {
             const q = document.getElementById('question').value.trim().toLowerCase()
             if (!q || !currentText) return
+            const terms = q.split(/\s+/).filter(w => w.length > 2)
             const sentences = currentText.split(/[.!?]+/)
-            const match = sentences.find(s => s.toLowerCase().includes(q)) || "I couldn't find a direct answer in the note. Try rephrasing!"
-            document.getElementById('answer').textContent = match.trim()
+            const scored = sentences.map(s => ({
+                s,
+                score: terms.reduce((n, w) => n + (s.toLowerCase().includes(w) ? 1 : 0), 0)
+            })).sort((a, b) => b.score - a.score)
+            const best = scored[0]
+            document.getElementById('answer').textContent = best && best.score > 0
+                ? best.s.trim()
+                : "I couldn't find a direct answer in the note. Try rephrasing!"
+            unlockBadge('smart_ask')
+            checkPowerUser()
+        }
+
+        document.getElementById('question').addEventListener('keydown', e => {
+            if (e.key === 'Enter') askQuestion()
+        })
+
+        document.getElementById('proMode').addEventListener('change', () => {
+            if (currentText && !document.getElementById('results').classList.contains('hidden')) {
+                processImage()
+            }
+        })
+
+        function copyText(id) {
+            const el = document.getElementById(id)
+            navigator.clipboard.writeText(el.textContent).then(() => showStatus('📋 Copied to clipboard!'))
+        }
+
+        function exportNotes() {
+            const body = [
+                'SnapNote Export',
+                '==============',
+                '',
+                'EXTRACTED TEXT',
+                currentText,
+                '',
+                'SUMMARY',
+                document.getElementById('summary').textContent,
+                '',
+                'KEYWORDS',
+                [...document.getElementById('keywords').querySelectorAll('span')].map(s => s.textContent).join(', ')
+            ].join('\n')
+            const blob = new Blob([body], { type: 'text/plain' })
+            const a = document.createElement('a')
+            a.href = URL.createObjectURL(blob)
+            a.download = 'snapnote-export.txt'
+            a.click()
+            URL.revokeObjectURL(a.href)
+            showStatus('💾 Notes exported!')
+        }
+
+        function resetApp() {
+            document.getElementById('preview').classList.add('hidden')
+            document.getElementById('results').classList.add('hidden')
+            document.getElementById('dropzone').classList.remove('hidden')
+            document.getElementById('fileInput').value = ''
+            currentText = ''
         }
 
         let deferredPrompt
@@ -154,250 +397,31 @@
             deferredPrompt = e
             document.getElementById('installBtn').classList.remove('hidden')
         })
+
         async function installApp() {
             if (!deferredPrompt) return
             deferredPrompt.prompt()
             const { outcome } = await deferredPrompt.userChoice
-            if (outcome === 'accepted') document.getElementById('installBtn').classList.add('hidden')
+            if (outcome === 'accepted') {
+                document.getElementById('installBtn').classList.add('hidden')
+                unlockBadge('app_installed')
+                checkPowerUser()
+            }
             deferredPrompt = null
         }
 
-        // Register real SW
+        window.addEventListener('appinstalled', () => {
+            unlockBadge('app_installed')
+            checkPowerUser()
+        })
+
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js')
                 .then(() => console.log('SnapNote app shell cached'))
                 .catch(err => console.log('SW error', err))
         }
+
+        renderBadges()
     </script>
 </body>
 </html>
-<!-- The superseded prototype below is intentionally disabled pending removal.
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SnapNote ✨</title>
-  <meta name="description" content="Turn any photo into clean notes — 100% offline, private AI in your browser." />
-  <link rel="manifest" href="/manifest.json" />
-  <meta name="theme-color" content="#0f766e" />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: system-ui, sans-serif;
-      background: #0f172a;
-      color: #f8fafc;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    header {
-      width: 100%;
-      background: #0f766e;
-      padding: 1rem 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-    header h1 { font-size: 1.5rem; font-weight: 700; color: #fff; }
-    header p  { font-size: 0.85rem; color: #ccfbf1; }
-    main {
-      width: 100%;
-      max-width: 720px;
-      padding: 2rem 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-    }
-    .card {
-      background: #1e293b;
-      border-radius: 0.75rem;
-      padding: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-    .card h2 { font-size: 1.1rem; color: #5eead4; }
-    .drop-zone {
-      border: 2px dashed #0f766e;
-      border-radius: 0.5rem;
-      padding: 2rem;
-      text-align: center;
-      cursor: pointer;
-      transition: background 0.2s;
-      color: #94a3b8;
-    }
-    .drop-zone:hover, .drop-zone.dragover { background: #164e63; }
-    .drop-zone input[type=file] { display: none; }
-    #preview { max-width: 100%; border-radius: 0.5rem; display: none; }
-    textarea {
-      width: 100%;
-      background: #0f172a;
-      color: #f8fafc;
-      border: 1px solid #334155;
-      border-radius: 0.5rem;
-      padding: 0.75rem;
-      font-size: 0.95rem;
-      resize: vertical;
-      min-height: 120px;
-    }
-    button {
-      background: #0f766e;
-      color: #fff;
-      border: none;
-      border-radius: 0.5rem;
-      padding: 0.65rem 1.25rem;
-      font-size: 1rem;
-      cursor: pointer;
-      font-weight: 600;
-      transition: background 0.2s;
-    }
-    button:hover { background: #0d9488; }
-    button:disabled { background: #334155; cursor: not-allowed; }
-    #result { white-space: pre-wrap; font-size: 0.9rem; color: #e2e8f0; }
-    #status { font-size: 0.85rem; color: #94a3b8; min-height: 1.2em; }
-    #install-btn { display: none; }
-  </style>
-</head>
-<body>
-  <header>
-    <div>
-      <h1>SnapNote ✨</h1>
-      <p>Offline AI • Photo → Notes • 100% Private</p>
-    </div>
-    <button id="install-btn" style="margin-left:auto">📲 Install App</button>
-  </header>
-
-  <main>
-    <div class="card">
-      <h2>📷 Snap or Upload a Photo</h2>
-      <div class="drop-zone" id="drop-zone">
-        <input type="file" id="file-input" accept="image/*" />
-        <p>Drag &amp; drop an image here, or <strong>click to upload</strong></p>
-        <p style="font-size:0.8rem;margin-top:0.5rem">Supports JPG, PNG, WEBP</p>
-      </div>
-      <img id="preview" alt="Preview" />
-      <div id="status"></div>
-      <button id="ocr-btn" disabled>🔍 Extract Text (OCR)</button>
-    </div>
-
-    <div class="card">
-      <h2>📝 Extracted Text</h2>
-      <textarea id="ocr-output" placeholder="Extracted text will appear here…" readonly></textarea>
-    </div>
-
-    <div class="card">
-      <h2>💡 Ask a Question</h2>
-      <input type="text" id="question" placeholder="e.g. What is the main topic?" style="background:#0f172a;color:#f8fafc;border:1px solid #334155;border-radius:0.5rem;padding:0.65rem;width:100%;font-size:0.95rem" />
-      <button id="qa-btn" disabled>🤖 Get Answer</button>
-      <div id="result"></div>
-    </div>
-  </main>
-
-  <script>
-    // Service Worker registration
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(reg => console.log('SW registered', reg.scope))
-        .catch(err => console.error('SW registration failed', err));
-    }
-
-    // PWA install prompt
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', e => {
-      e.preventDefault();
-      deferredPrompt = e;
-      document.getElementById('install-btn').style.display = 'inline-block';
-    });
-    document.getElementById('install-btn').addEventListener('click', () => {
-      if (!deferredPrompt) return;
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
-    });
-
-    // File upload / drag-drop
-    const dropZone   = document.getElementById('drop-zone');
-    const fileInput  = document.getElementById('file-input');
-    const preview    = document.getElementById('preview');
-    const ocrBtn     = document.getElementById('ocr-btn');
-    const ocrOutput  = document.getElementById('ocr-output');
-    const qaBtn      = document.getElementById('qa-btn');
-    const questionEl = document.getElementById('question');
-    const resultEl   = document.getElementById('result');
-    const statusEl   = document.getElementById('status');
-
-    let currentFile = null;
-
-    dropZone.addEventListener('click', () => fileInput.click());
-    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-    dropZone.addEventListener('drop', e => {
-      e.preventDefault();
-      dropZone.classList.remove('dragover');
-      handleFile(e.dataTransfer.files[0]);
-    });
-    fileInput.addEventListener('change', () => handleFile(fileInput.files[0]));
-
-    function handleFile(file) {
-      if (!file || !file.type.startsWith('image/')) return;
-      currentFile = file;
-      const url = URL.createObjectURL(file);
-      preview.src = url;
-      preview.style.display = 'block';
-      ocrBtn.disabled = false;
-      ocrOutput.value = '';
-      resultEl.textContent = '';
-      qaBtn.disabled = true;
-      statusEl.textContent = 'Image loaded. Click "Extract Text" to begin OCR.';
-    }
-
-    // OCR via Tesseract.js (CDN — loads only when needed)
-    ocrBtn.addEventListener('click', async () => {
-      if (!currentFile) return;
-      ocrBtn.disabled = true;
-      statusEl.textContent = '⏳ Loading OCR engine…';
-      try {
-        if (typeof Tesseract === 'undefined') {
-          await loadScript('https://unpkg.com/tesseract.js@5/dist/tesseract.min.js');
-        }
-        statusEl.textContent = '🔍 Running OCR…';
-        const { data: { text } } = await Tesseract.recognize(currentFile, 'eng');
-        ocrOutput.value = text.trim();
-        ocrOutput.removeAttribute('readonly');
-        statusEl.textContent = '✅ OCR complete.';
-        if (text.trim()) qaBtn.disabled = false;
-      } catch (err) {
-        statusEl.textContent = '❌ OCR failed: ' + err.message;
-      } finally {
-        ocrBtn.disabled = false;
-      }
-    });
-
-    // Q&A (simple keyword search — no network needed for basic mode)
-    qaBtn.addEventListener('click', () => {
-      const q   = questionEl.value.trim().toLowerCase();
-      const txt = ocrOutput.value.trim();
-      if (!q || !txt) return;
-
-      // Sentence-level keyword matching
-      const sentences = txt.match(/[^.!?]+[.!?]*/g) || [txt];
-      const scored = sentences.map(s => ({
-        s,
-        score: q.split(/\s+/).filter(w => w.length > 2).reduce((n, w) => n + (s.toLowerCase().includes(w) ? 1 : 0), 0)
-      }));
-      scored.sort((a, b) => b.score - a.score);
-      const best = scored[0];
-      resultEl.textContent = best && best.score > 0
-        ? best.s.trim()
-        : 'No relevant answer found in the extracted text.';
-    });
-
-    function loadScript(src) {
-      return new Promise((res, rej) => {
-        const s = document.createElement('script');
-        s.src = src; s.onload = res; s.onerror = rej;
-        document.head.appendChild(s);
-      });
-    }
-  </script>
-</body>
-</html>
--->
