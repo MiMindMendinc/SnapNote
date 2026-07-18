@@ -85,6 +85,6 @@ We may update this policy as SnapNote evolves. Material changes will be reflecte
 
 **Lyle Perrien II**  
 Founder, Michigan MindMend Inc.  
-Owosso, Michigan
+Michigan
 
 For privacy questions about a specific deployment, contact the person or organization hosting that deployment.
