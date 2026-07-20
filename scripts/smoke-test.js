@@ -105,7 +105,7 @@ for (const pattern of readmeChecks) {
 }
 
 const pagesWorkflow = read('.github/workflows/pages.yml');
-if (!pagesWorkflow.includes('enablement: true')) ok('Pages workflow does not require elevated Pages enablement');
+if (!/^\s*enablement\s*:\s*true\s*$/m.test(pagesWorkflow)) ok('Pages workflow does not require elevated Pages enablement');
 else fail('Pages workflow uses elevated Pages enablement');
 
 const vendorSize = fs.statSync(path.join(ROOT, 'assets/vendor/eng.traineddata.gz')).size;
