@@ -139,7 +139,7 @@ SnapNote processes photos **in your browser**. There is no SnapNote server in th
 
 **Lyle Perrien II**  
 Founder, **Michigan MindMend Inc.**  
-Owosso, Michigan
+Michigan
 
 Building privacy-first, offline-capable AI tools for families, communities, and trust-sensitive environments.
 
