@@ -104,6 +104,11 @@ for (const pattern of readmeChecks) {
   else fail(`README missing: ${pattern}`);
 }
 
+const pagesWorkflow = read('.github/workflows/pages.yml');
+const hasElevatedPagesEnablement = /^\s*enablement\s*:\s*true\s*$/m.test(pagesWorkflow);
+if (hasElevatedPagesEnablement) fail('Pages workflow uses elevated Pages enablement');
+else ok('Pages workflow does not require elevated Pages enablement');
+
 const vendorSize = fs.statSync(path.join(ROOT, 'assets/vendor/eng.traineddata.gz')).size;
 if (vendorSize > 1_000_000) ok(`OCR language data bundled (${Math.round(vendorSize / 1e6)} MB)`);
 else fail('OCR language data too small');
